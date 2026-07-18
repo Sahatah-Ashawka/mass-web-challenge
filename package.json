@@ -1,0 +1,17 @@
+{
+  "name": "gatehouse-pass",
+  "version": "1.0.0",
+  "description": "Medium web CTF challenge: method override plus mass assignment.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "verify": "node verify.js"
+  },
+  "keywords": [
+    "ctf",
+    "web",
+    "challenge"
+  ],
+  "author": "",
+  "license": "MIT"
+}

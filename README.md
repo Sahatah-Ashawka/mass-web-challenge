@@ -1,0 +1,36 @@
+# Gatehouse Pass
+
+Medium web CTF challenge built around method override plus mass assignment.
+
+## Scenario
+
+Gatehouse Pass is a badge-management portal for an event security team. Normal users can create a pass and edit harmless public profile fields. Director-only pages hold the flag.
+
+## Intended Bug
+
+The modern profile update path only saves allowed display fields. A legacy compatibility path accepts `_method=PATCH` or `X-HTTP-Method-Override: PATCH`, then blindly applies every submitted field to the current user profile.
+
+Solvers should discover the legacy behavior through `/robots.txt`, `/release-notes`, `/sitemap.xml`, or `/api/docs`, then submit `role=admin` through the overridden profile endpoint.
+
+## Difficulty
+
+Medium. The challenge requires route discovery, request editing, and understanding the difference between normal profile updates and legacy method override handling. It avoids XSS, SQL injection, command injection, SSRF, SSTI, serialization, Unicode encoding tricks, case-sensitive route tricks, and race conditions.
+
+## Flag
+
+Set a custom flag with the `FLAG` environment variable. The default is:
+
+```text
+flag{m3th0d_0v3rr1d3_m455_4551gnm3nt}
+```
+
+## Files
+
+- `server.js` - challenge server and vulnerable logic
+- `public/styles.css` - UI styling
+- `verify.js` - automated intended-solve check
+- `SOLUTION.md` - organizer-only solve notes
+
+## Deployment Notes
+
+The app uses only Node.js built-in modules, so it does not need dependency installation. It stores users in memory, which is intentional for a CTF challenge instance.
