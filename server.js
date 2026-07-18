@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 3002);
 const FLAG = process.env.FLAG || "flag{m3th0d_0v3rr1d3_m455_4551gnm3nt}";
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.createHash("sha256").update(`gatehouse:${FLAG}`).digest("hex");
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -126,21 +126,21 @@ function renderShell(title, content, user) {
   const authLinks = user
     ? `<span class="identity">${escapeHtml(user.displayName)} · ${escapeHtml(user.role)}</span>
        <form method="POST" action="/logout"><button class="icon-button" title="Sign out" aria-label="Sign out">Exit</button></form>`
-    : `<a href="/login">Sign in</a><a class="nav-strong" href="/register">Create pass</a>`;
+    : `<a href="/login">Sign in</a><a class="nav-strong" href="/register">Sign up</a>`;
 
   return html`<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(title)} · Gatehouse Pass</title>
+  <title>${escapeHtml(title)} · web</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/">
-      <span class="brand-mark">G</span>
-      <span>Gatehouse Pass</span>
+      <span class="brand-mark">w</span>
+      <span>web</span>
     </a>
     <nav>${authLinks}</nav>
   </header>
@@ -157,9 +157,9 @@ function renderHome(req, res) {
       <div class="hero-copy">
         <p class="eyebrow">Event access operations</p>
         <h1>Request a badge. Join the floor. Keep the gates moving.</h1>
-        <p class="lead">Gatehouse Pass handles staff badge requests for the Atlas Security Forum. Regular crew can update their pass profile; directors approve protected credentials.</p>
+        <p class="lead">web handles staff badge requests for the Atlas Security Forum. Regular crew can update their pass profile; admins approve protected credentials.</p>
         <div class="actions">
-          <a class="button primary" href="/register">Create attendee pass</a>
+          <a class="button primary" href="/register">Sign up</a>
           <a class="button ghost" href="/login">I already have one</a>
         </div>
       </div>
@@ -186,8 +186,7 @@ function renderAuth(req, res, mode, error = "") {
   const content = html`
     <section class="form-stage">
       <div class="panel">
-        <p class="eyebrow">${isRegister ? "New credential" : "Crew sign in"}</p>
-        <h1>${isRegister ? "Create your event pass" : "Open your pass desk"}</h1>
+        ${isRegister ? `<p class="eyebrow">New credential</p><h1>Sign up</h1>` : ""}
         ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
         <form method="POST" action="/${isRegister ? "register" : "login"}" class="stack-form">
           <label>Username
@@ -199,9 +198,9 @@ function renderAuth(req, res, mode, error = "") {
           ${isRegister ? `<label>Display name
             <input name="displayName" maxlength="48" placeholder="Maya Event Staff">
           </label>` : ""}
-          <button class="button primary" type="submit">${isRegister ? "Create pass" : "Sign in"}</button>
+          <button class="button primary" type="submit">${isRegister ? "Sign up" : "Sign in"}</button>
         </form>
-        <p class="switch">${isRegister ? `Already registered? <a href="/login">Sign in</a>.` : `Need a badge? <a href="/register">Create one</a>.`}</p>
+        <p class="switch">${isRegister ? `Already registered? <a href="/login">Sign in</a>.` : `Need a badge? <a href="/register">Sign up</a>.`}</p>
       </div>
     </section>
   `;
@@ -213,8 +212,8 @@ function renderPortal(req, res) {
   if (!user) return redirect(res, "/login");
 
   const adminLink = user.role === "admin"
-    ? `<a class="button primary" href="/admin">Open director console</a>`
-    : `<a class="button ghost" href="/admin">Director console</a>`;
+    ? `<a class="button primary" href="/admin">Open Admin Panel</a>`
+    : `<a class="button ghost" href="/admin">Admin Panel</a>`;
 
   const content = html`
     <section class="portal-layout">
@@ -264,21 +263,21 @@ function renderAdmin(req, res) {
     return sendHtml(res, 403, renderShell("Forbidden", html`
       <section class="form-stage">
         <div class="panel">
-          <p class="eyebrow">Director console</p>
+          <p class="eyebrow">Admin Panel</p>
           <h1>Manual approval required</h1>
-          <p class="muted">Your current pass role is <strong>${escapeHtml(user.role)}</strong>. Director credentials are required.</p>
+          <p class="muted">Your current pass role is <strong>${escapeHtml(user.role)}</strong>. Admin credentials are required.</p>
           <a class="button ghost" href="/portal">Back to pass desk</a>
         </div>
       </section>
     `, user));
   }
 
-  return sendHtml(res, 200, renderShell("Director Console", html`
+  return sendHtml(res, 200, renderShell("Admin Panel", html`
     <section class="admin-band">
-      <p class="eyebrow">Director console</p>
+      <p class="eyebrow">Admin Panel</p>
       <h1>Vault release approved</h1>
       <p class="flag">${escapeHtml(FLAG)}</p>
-      <p class="muted">This console is only shown to passes with the director role.</p>
+      <p class="muted">This panel is only shown to passes with the admin role.</p>
     </section>
   `, user));
 }
@@ -451,7 +450,7 @@ function renderReleaseNotes(req, res) {
 
 function renderApiDocs(req, res) {
   sendJson(res, 200, {
-    service: "Gatehouse Pass profile API",
+    service: "web profile API",
     routes: [
       {
         method: "POST",
@@ -466,7 +465,7 @@ function renderApiDocs(req, res) {
       {
         method: "GET",
         path: "/api/admin/flag",
-        description: "Director role required."
+      description: "Admin role required."
       }
     ]
   });
@@ -475,7 +474,7 @@ function renderApiDocs(req, res) {
 function handleApiFlag(req, res) {
   const user = currentUser(req);
   if (!user) return sendJson(res, 401, { error: "login required" });
-  if (user.role !== "admin") return sendJson(res, 403, { error: "director role required", role: user.role });
+  if (user.role !== "admin") return sendJson(res, 403, { error: "admin role required", role: user.role });
   return sendJson(res, 200, { flag: FLAG });
 }
 
@@ -539,5 +538,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Gatehouse Pass running at http://localhost:${PORT}`);
+  console.log(`web running at http://localhost:${PORT}`);
 });

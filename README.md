@@ -1,10 +1,10 @@
-# Gatehouse Pass
+# web
 
 Medium web CTF challenge built around method override plus mass assignment.
 
 ## Scenario
 
-Gatehouse Pass is a badge-management portal for an event security team. Normal users can create a pass and edit harmless public profile fields. Director-only pages hold the flag.
+web is a badge-management portal for an event security team. Normal users can sign up and edit harmless public profile fields. Admin-only pages hold the flag.
 
 ## Intended Bug
 
