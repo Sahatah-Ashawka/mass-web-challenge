@@ -24,6 +24,7 @@ Content-Type: application/x-www-form-urlencoded
 _method=PATCH&displayName=test&role=admin
 ```
 
-7. Visit `/admin` or `/api/admin/flag` to retrieve the flag.
+7. Keep the refreshed `sid` cookie returned by that response. Browsers do this automatically.
+8. Visit `/admin` or `/api/admin/flag` to retrieve the flag.
 
 The vulnerable code is in `handleProfile()` in `server.js`. The legacy `PATCH` branch copies all submitted keys into the current user object with `Object.assign(user, updates)`.

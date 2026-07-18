@@ -5,10 +5,10 @@ const crypto = require("crypto");
 
 const PORT = Number(process.env.PORT || 3000);
 const FLAG = process.env.FLAG || "flag{m3th0d_0v3rr1d3_m455_4551gnm3nt}";
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.createHash("sha256").update(`gatehouse:${FLAG}`).digest("hex");
 const PUBLIC_DIR = path.join(__dirname, "public");
 
 const users = new Map();
-const sessions = new Map();
 
 function makeId(prefix) {
   return `${prefix}_${crypto.randomBytes(8).toString("hex")}`;
@@ -56,21 +56,50 @@ function parseCookies(req) {
   return cookies;
 }
 
+function sign(value) {
+  return crypto.createHmac("sha256", SESSION_SECRET).update(value).digest("base64url");
+}
+
+function packUser(user) {
+  const publicProfile = {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    team: user.team,
+    tagline: user.tagline,
+    role: user.role
+  };
+  const payload = Buffer.from(JSON.stringify(publicProfile)).toString("base64url");
+  return `${payload}.${sign(payload)}`;
+}
+
+function unpackUser(token) {
+  if (!token || !token.includes(".")) return null;
+  const [payload, mac] = token.split(".");
+  const expected = sign(payload);
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expected))) return null;
+    const user = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!user || !user.id || !user.username || !user.role) return null;
+    return user;
+  } catch {
+    return null;
+  }
+}
+
 function currentUser(req) {
   const sid = parseCookies(req).sid;
-  if (!sid || !sessions.has(sid)) return null;
-  return users.get(sessions.get(sid)) || null;
+  const cookieUser = unpackUser(sid);
+  if (cookieUser) return cookieUser;
+  return null;
 }
 
 function setSession(res, user) {
-  const sid = makeId("sid");
-  sessions.set(sid, user.id);
+  const sid = packUser(user);
   res.setHeader("Set-Cookie", `sid=${encodeURIComponent(sid)}; HttpOnly; SameSite=Lax; Path=/`);
 }
 
 function clearSession(req, res) {
-  const sid = parseCookies(req).sid;
-  if (sid) sessions.delete(sid);
   res.setHeader("Set-Cookie", "sid=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
 }
 
@@ -342,6 +371,8 @@ async function handleProfile(req, res, url) {
 
     // Intentional challenge bug: the legacy PATCH path trusts every submitted profile key.
     Object.assign(user, updates);
+    users.set(user.id, { ...users.get(user.id), ...user });
+    setSession(res, user);
 
     if (acceptsJson(req)) {
       return sendJson(res, 200, {
@@ -361,6 +392,8 @@ async function handleProfile(req, res, url) {
   user.displayName = String(body.displayName || user.displayName).slice(0, 48);
   user.team = String(body.team || user.team || "Badge Support").slice(0, 48);
   user.tagline = String(body.tagline || user.tagline || "").slice(0, 80);
+  users.set(user.id, { ...users.get(user.id), ...user });
+  setSession(res, user);
 
   if (acceptsJson(req)) {
     return sendJson(res, 200, {

