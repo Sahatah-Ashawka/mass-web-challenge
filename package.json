@@ -1,7 +1,7 @@
 {
   "name": "gatehouse-pass",
   "version": "1.0.0",
-  "description": "Medium web CTF challenge: method override plus mass assignment.",
+  "description": "Small web CTF challenge.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

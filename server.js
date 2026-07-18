@@ -4,7 +4,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const PORT = Number(process.env.PORT || 3002);
-const FLAG = process.env.FLAG || "flag{m3th0d_0v3rr1d3_m455_4551gnm3nt}";
+const FLAG = process.env.FLAG || "flag{access_update_complete}";
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.createHash("sha256").update(`gatehouse:${FLAG}`).digest("hex");
 const PUBLIC_DIR = path.join(__dirname, "public");
 
@@ -234,7 +234,6 @@ function renderPortal(req, res) {
         <h2>Update public badge details</h2>
         <p class="muted">Only display fields are editable from the modern desk.</p>
         <form method="POST" action="/api/profile" class="stack-form">
-          <!-- The native clients still use the older profile endpoint during venue setup. -->
           <label>Display name
             <input name="displayName" value="${escapeHtml(user.displayName)}" maxlength="48">
           </label>
@@ -368,7 +367,6 @@ async function handleProfile(req, res, url) {
     const updates = { ...body };
     delete updates._method;
 
-    // Intentional challenge bug: the legacy PATCH path trusts every submitted profile key.
     Object.assign(user, updates);
     users.set(user.id, { ...users.get(user.id), ...user });
     setSession(res, user);
@@ -376,7 +374,6 @@ async function handleProfile(req, res, url) {
     if (acceptsJson(req)) {
       return sendJson(res, 200, {
         ok: true,
-        mode: "legacy-patch",
         profile: {
           username: user.username,
           displayName: user.displayName,
@@ -397,8 +394,6 @@ async function handleProfile(req, res, url) {
   if (acceptsJson(req)) {
     return sendJson(res, 200, {
       ok: true,
-      mode: "modern-post",
-      ignored: ["role", "clearance", "isAdmin"],
       profile: {
         username: user.username,
         displayName: user.displayName,
@@ -427,50 +422,6 @@ function serveStatic(req, res, pathname) {
   return true;
 }
 
-function renderReleaseNotes(req, res) {
-  sendHtml(res, 200, renderShell("Release Notes", html`
-    <section class="notes">
-      <p class="eyebrow">Gatehouse mobile compatibility</p>
-      <h1>Release notes</h1>
-      <article>
-        <h2>1.8.2</h2>
-        <p>Older venue tablets cannot send every HTTP verb through their proxy, so the profile endpoint accepts <code>_method=PATCH</code> and <code>X-HTTP-Method-Override</code> while those devices are being replaced.</p>
-      </article>
-      <article>
-        <h2>1.8.1</h2>
-        <p>The modern web desk now hides protected pass fields from the profile form. Directors can still approve credentials from the console.</p>
-      </article>
-      <article>
-        <h2>1.7.9</h2>
-        <p>Public badge notes were moved into the self-service profile desk.</p>
-      </article>
-    </section>
-  `, currentUser(req)));
-}
-
-function renderApiDocs(req, res) {
-  sendJson(res, 200, {
-    service: "web profile API",
-    routes: [
-      {
-        method: "POST",
-        path: "/api/profile",
-        description: "Modern web desk profile update."
-      },
-      {
-        method: "PATCH",
-        path: "/api/profile",
-        description: "Legacy tablet profile update. Use _method or X-HTTP-Method-Override when PATCH is blocked by the client proxy."
-      },
-      {
-        method: "GET",
-        path: "/api/admin/flag",
-      description: "Admin role required."
-      }
-    ]
-  });
-}
-
 function handleApiFlag(req, res) {
   const user = currentUser(req);
   if (!user) return sendJson(res, 401, { error: "login required" });
@@ -489,26 +440,7 @@ async function router(req, res) {
   if (req.method === "GET" && pathname === "/register") return renderAuth(req, res, "register");
   if (req.method === "GET" && pathname === "/portal") return renderPortal(req, res);
   if (req.method === "GET" && pathname === "/admin") return renderAdmin(req, res);
-  if (req.method === "GET" && pathname === "/release-notes") return renderReleaseNotes(req, res);
-  if (req.method === "GET" && pathname === "/api/docs") return renderApiDocs(req, res);
   if (req.method === "GET" && pathname === "/api/admin/flag") return handleApiFlag(req, res);
-
-  if (req.method === "GET" && pathname === "/robots.txt") {
-    return send(res, 200, "User-agent: *\nDisallow: /release-notes\nAllow: /api/docs\n", {
-      "Content-Type": "text/plain; charset=utf-8"
-    });
-  }
-
-  if (req.method === "GET" && pathname === "/sitemap.xml") {
-    const host = `http://${req.headers.host || "localhost"}`;
-    return send(res, 200, `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${host}/portal</loc></url>
-  <url><loc>${host}/release-notes</loc></url>
-  <url><loc>${host}/api/docs</loc></url>
-  <url><loc>${host}/admin</loc></url>
-</urlset>`, { "Content-Type": "application/xml; charset=utf-8" });
-  }
 
   if (req.method === "POST" && pathname === "/register") return handleRegister(req, res);
   if (req.method === "POST" && pathname === "/login") return handleLogin(req, res);

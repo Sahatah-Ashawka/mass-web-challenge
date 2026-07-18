@@ -1,35 +1,20 @@
 # web
 
-Medium web CTF challenge built around method override plus mass assignment.
-
-## Scenario
-
-web is a badge-management portal for an event security team. Normal users can sign up and edit harmless public profile fields. Admin-only pages hold the flag.
-
-## Intended Bug
-
-The modern profile update path only saves allowed display fields. A legacy compatibility path accepts `_method=PATCH` or `X-HTTP-Method-Override: PATCH`, then blindly applies every submitted field to the current user profile.
-
-Solvers should discover the legacy behavior through `/robots.txt`, `/release-notes`, `/sitemap.xml`, or `/api/docs`, then submit `role=admin` through the overridden profile endpoint.
-
-## Difficulty
-
-Medium. The challenge requires route discovery, request editing, and understanding the difference between normal profile updates and legacy method override handling. It avoids XSS, SQL injection, command injection, SSRF, SSTI, serialization, Unicode encoding tricks, case-sensitive route tricks, and race conditions.
+A small web challenge for an event access portal.
 
 ## Flag
 
 Set a custom flag with the `FLAG` environment variable. The default is:
 
 ```text
-flag{m3th0d_0v3rr1d3_m455_4551gnm3nt}
+flag{access_update_complete}
 ```
 
 ## Files
 
-- `server.js` - challenge server and vulnerable logic
+- `server.js` - challenge server
 - `public/styles.css` - UI styling
-- `verify.js` - automated intended-solve check
-- `SOLUTION.md` - organizer-only solve notes
+- `verify.js` - automated health check
 - `Dockerfile` - normal container deployment
 - `Dockerfile.vercel` - Vercel container-function deployment through GitHub
 
