@@ -454,8 +454,8 @@ async function router(req, res) {
   sendHtml(res, 404, renderShell("Missing", html`
     <section class="form-stage">
       <div class="panel">
-        <p class="eyebrow">Not found</p>
-        <h1>No pass desk here</h1>
+        <p class="eyebrow">404</p>
+        <h1>Not Found</h1>
         <a class="button ghost" href="/">Return home</a>
       </div>
     </section>
