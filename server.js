@@ -356,12 +356,7 @@ async function handleProfile(req, res, url) {
   }
 
   const body = await parseBody(req);
-  const override = String(
-    body._method ||
-    req.headers["x-http-method-override"] ||
-    url.searchParams.get("_method") ||
-    req.method
-  ).toUpperCase();
+  const override = String(url.searchParams.get("_method") || req.method).toUpperCase();
 
   if (override === "PATCH") {
     const updates = { ...body };
@@ -449,7 +444,6 @@ async function router(req, res) {
     return redirect(res, "/");
   }
   if (req.method === "POST" && pathname === "/api/profile") return handleProfile(req, res, url);
-  if (req.method === "PATCH" && pathname === "/api/profile") return handleProfile(req, res, url);
 
   sendHtml(res, 404, renderShell("Missing", html`
     <section class="form-stage">
